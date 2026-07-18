@@ -1,10 +1,10 @@
 """
-account.py - Account management controller.
+account.py — Account management controller.
 
 Handles:
-  . Dashboard : read balance and render summary
-  . Deposit   : validate amount, add to balance
-  . Withdraw  : validate amount, check sufficiency, subtract from balance
+  • Dashboard : read balance and render summary
+  • Deposit   : validate amount, add to balance
+  • Withdraw  : validate amount, check sufficiency, subtract from balance
 
 All monetary arithmetic uses Python's decimal.Decimal to avoid
 floating-point rounding surprises before storing as REAL in SQLite.
@@ -69,8 +69,8 @@ def handle_dashboard():
 def handle_deposit():
     """Process GET and POST for /deposit.
 
-    GET  ? render the deposit form.
-    POST ? validate amount, add to balance, redirect to dashboard.
+    GET  → render the deposit form.
+    POST → validate amount, add to balance, redirect to dashboard.
     """
     if request.method == "GET":
         return render_template("deposit.html")
@@ -99,8 +99,8 @@ def handle_deposit():
 def handle_withdraw():
     """Process GET and POST for /withdraw.
 
-    GET  ? render the withdraw form with current balance.
-    POST ? validate amount, check sufficiency, subtract from balance, redirect.
+    GET  → render the withdraw form with current balance.
+    POST → validate amount, check sufficiency, subtract from balance, redirect.
     """
     customer_id = session["customer_id"]
 
@@ -110,6 +110,40 @@ def handle_withdraw():
 
     # --- POST ---
     raw_amount = request.form.get("amount", "")
+
+    # Explicit validation checks
+    if not raw_amount or not raw_amount.strip():
+        balance = db.get_balance(customer_id)
+        return render_template(
+            "withdraw.html",
+            error="Amount is required",
+            amount=raw_amount,
+            balance=f"{balance:,.2f}",
+        )
+
+    try:
+        _check_amount = Decimal(raw_amount.strip())
+    except InvalidOperation:
+        _check_amount = Decimal("0")
+
+    if _check_amount <= 0:
+        balance = db.get_balance(customer_id)
+        return render_template(
+            "withdraw.html",
+            error="Amount must be greater than zero",
+            amount=raw_amount,
+            balance=f"{balance:,.2f}",
+        )
+
+    current_balance_check = Decimal(str(db.get_balance(customer_id)))
+    if _check_amount > current_balance_check:
+        return render_template(
+            "withdraw.html",
+            error="Insufficient funds",
+            amount=raw_amount,
+            balance=f"{current_balance_check:,.2f}",
+        )
+
     amount, error = _parse_amount(raw_amount)
 
     if error:
