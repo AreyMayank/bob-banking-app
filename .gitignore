@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+
+# SQLite database
+BACKEND/bank.db
+
+# OS
+.DS_Store
+Thumbs.db
